@@ -6,6 +6,7 @@
 *.tsv
 *.json
 *.jsonl
+*.db
 
 # Python
 __pycache__/
