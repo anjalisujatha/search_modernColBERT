@@ -47,6 +47,9 @@ ENV/
 .DS_Store
 Thumbs.db
 
+# Index
+pylate_index/
+
 # Models / checkpoints
 *.pt
 *.pth
