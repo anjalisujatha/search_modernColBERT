@@ -50,7 +50,7 @@ def save_to_sqlite(df: pd.DataFrame, db_path: str) -> None:
         if_exists="replace",
         index=True,
         chunksize=10_000,
-        dtype={"pid": types.Integer()},
+        dtype={"pid": types.Text()},
     )
     print(f"Saved {len(df_save)} rows to {db_path}")
 

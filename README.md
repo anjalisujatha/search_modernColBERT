@@ -10,15 +10,47 @@ make setup
 
 This creates a `.venv` virtual environment and installs all dependencies (core, notebook, and dev) from `pyproject.toml`.
 
-## Pipeline
+## API
 
-The database and index are already included — just set your query and run:
+Start the server:
 
 ```bash
-.venv/bin/python scripts/retrieve_data.py
+.venv/bin/uvicorn main:app --reload
 ```
 
-Encodes the query defined by `QUERY` in `retrieve_data.py`, retrieves the top-K nearest neighbours from the index, and prints the matching product titles with their scores.
+### Endpoints
+
+#### `GET /search/{query}`
+
+Returns the top matching products for a search query.
+
+| Parameter | Type   | Required | Default | Description                  |
+|-----------|--------|----------|---------|------------------------------|
+| `query`   | string | Yes      | —       | Search query (path parameter)|
+| `count`   | int    | No       | 5       | Number of results to return  |
+
+**Example requests:**
+
+```
+GET /search/energy efficient fan
+GET /search/energy efficient fan?count=10
+```
+
+**Example response:**
+
+```json
+[
+  {"score": 0.8412, "title": "Energy Star Certified Ceiling Fan"},
+  {"score": 0.8201, "title": "Quiet Energy Saving Tower Fan"},
+  {"score": 0.7985, "title": "Solar Powered Outdoor Fan"}
+]
+```
+
+---
+
+## Pipeline
+
+The database and index are already included — just start the API server and query it.
 
 ---
 
