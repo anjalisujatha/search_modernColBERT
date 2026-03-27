@@ -1,7 +1,7 @@
 import sqlite3
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -20,8 +20,7 @@ def _make_db(tmp_path, rows):
     conn.execute("CREATE TABLE products (pid TEXT, product_title TEXT)")
     conn.executemany("INSERT INTO products VALUES (?,?)", rows)
     conn.commit()
-    conn.close()
-    return db
+    return conn
 
 
 @pytest.fixture
@@ -36,54 +35,42 @@ def mock_retriever():
     return MagicMock()
 
 
-@pytest.fixture(autouse=True)
-def patch_index_lifecycle():
-    with (
-        patch("retrieve_data.extract_index"),
-        patch("retrieve_data.cleanup_index"),
-    ):
-        yield
-
-
 def test_query_is_encoded_with_is_query_true(tmp_path, mock_model, mock_retriever):
     """model.encode is called with is_query=True so the query uses the query tower."""
-    from retrieve_data import main
+    from retrieve_data import search
 
-    db = _make_db(tmp_path, [("p1", "Fan")])
+    conn = _make_db(tmp_path, [("p1", "Fan")])
     mock_retriever.retrieve.return_value = [[{"id": "p1", "score": 0.9}]]
 
-    with (
-        patch("retrieve_data.DB_PATH", db),
-        patch("retrieve_data.QUERY", "energy efficient fan"),
-        patch("retrieve_data.TOP_K", 1),
-        patch("retrieve_data.models.ColBERT", return_value=mock_model),
-        patch("retrieve_data.indexes.Voyager", return_value=MagicMock()),
-        patch("retrieve_data.retrieve.ColBERT", return_value=mock_retriever),
-    ):
-        main()
+    search("energy efficient fan", 1, mock_model, mock_retriever, conn)
 
     mock_model.encode.assert_called_once()
     assert mock_model.encode.call_args.kwargs["is_query"] is True
 
 
-def test_retrieve_maps_hits_to_correct_db_titles(tmp_path, mock_model, mock_retriever, capsys):
-    """Retriever hits are looked up in SQLite and the matching product titles are printed."""
-    from retrieve_data import main
+def test_retrieve_maps_hits_to_correct_db_titles(tmp_path, mock_model, mock_retriever):
+    """Retriever hits are looked up in SQLite and the matching product titles are returned."""
+    from retrieve_data import search
 
-    db = _make_db(tmp_path, [("p1", "Energy Efficient Fan"), ("p2", "Desk Lamp"), ("p3", "USB Hub")])
+    conn = _make_db(tmp_path, [("p1", "Energy Efficient Fan"), ("p2", "Desk Lamp"), ("p3", "USB Hub")])
     mock_retriever.retrieve.return_value = [[{"id": "p1", "score": 0.95}, {"id": "p3", "score": 0.80}]]
 
-    with (
-        patch("retrieve_data.DB_PATH", db),
-        patch("retrieve_data.QUERY", "fan"),
-        patch("retrieve_data.TOP_K", 2),
-        patch("retrieve_data.models.ColBERT", return_value=mock_model),
-        patch("retrieve_data.indexes.Voyager", return_value=MagicMock()),
-        patch("retrieve_data.retrieve.ColBERT", return_value=mock_retriever),
-    ):
-        main()
+    results = search("fan", 2, mock_model, mock_retriever, conn)
 
-    out = capsys.readouterr().out
-    assert "Energy Efficient Fan" in out
-    assert "USB Hub" in out
-    assert "Desk Lamp" not in out  # p2 was not in the retriever results
+    titles = [r["title"] for r in results]
+    assert "Energy Efficient Fan" in titles
+    assert "USB Hub" in titles
+    assert "Desk Lamp" not in titles  # p2 was not in the retriever results
+
+
+def test_missing_pid_is_skipped(tmp_path, mock_model, mock_retriever):
+    """Hits whose PID has no matching DB row are skipped rather than crashing."""
+    from retrieve_data import search
+
+    conn = _make_db(tmp_path, [("p1", "Fan")])
+    mock_retriever.retrieve.return_value = [[{"id": "p1", "score": 0.9}, {"id": "missing", "score": 0.5}]]
+
+    results = search("fan", 2, mock_model, mock_retriever, conn)
+
+    assert len(results) == 1
+    assert results[0]["title"] == "Fan"

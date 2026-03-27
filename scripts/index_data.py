@@ -48,58 +48,57 @@ def main():
         override=OVERRIDE_INDEX,
     )
 
-    conn = sqlite3.connect(str(DB_PATH))
-    cursor = conn.cursor()
+    with sqlite3.connect(str(DB_PATH)) as conn:
+        cursor = conn.cursor()
 
-    query = "SELECT pid, product_text FROM products"
-    if LIMIT:
-        query += f" LIMIT {LIMIT}"
-    cursor.execute(query)
+        if LIMIT:
+            cursor.execute("SELECT pid, product_text FROM products LIMIT ?", (LIMIT,))
+        else:
+            cursor.execute("SELECT pid, product_text FROM products")
 
-    total_start = time.time()
-    encoding_time = 0
-    indexing_time = 0
-    pending_ids = []
-    pending_embeddings = []
+        total_start = time.time()
+        encoding_time = 0
+        indexing_time = 0
+        pending_ids = []
+        pending_embeddings = []
 
-    n_batches = (LIMIT // ENCODE_BATCH_SIZE) if LIMIT else None
-    for batch_ids, batch_texts in tqdm(
-        iter_batches(cursor, ENCODE_BATCH_SIZE),
-        total=n_batches,
-        unit="batch",
-        desc="Encoding",
-    ):
-        t0 = time.time()
-        embeddings = model.encode(
-            batch_texts,
-            is_query=False,
-            batch_size=ENCODE_BATCH_SIZE,
-            pool_factor=2,
-            show_progress_bar=False,
-        )
-        if isinstance(embeddings, list):
-            embeddings = [e.cpu() if hasattr(e, "cpu") else e for e in embeddings]
-        encoding_time += time.time() - t0
+        n_batches = (LIMIT // ENCODE_BATCH_SIZE) if LIMIT else None
+        for batch_ids, batch_texts in tqdm(
+            iter_batches(cursor, ENCODE_BATCH_SIZE),
+            total=n_batches,
+            unit="batch",
+            desc="Encoding",
+        ):
+            t0 = time.time()
+            embeddings = model.encode(
+                batch_texts,
+                is_query=False,
+                batch_size=ENCODE_BATCH_SIZE,
+                pool_factor=2,
+                show_progress_bar=False,
+            )
+            if isinstance(embeddings, list):
+                embeddings = [e.cpu() if hasattr(e, "cpu") else e for e in embeddings]
 
-        pending_ids.extend(batch_ids)
-        pending_embeddings.extend(embeddings)
+            if device == "mps":
+                torch.mps.empty_cache()
 
-        if device == "mps":
-            torch.mps.empty_cache()
+            encoding_time += time.time() - t0
 
-        if len(pending_ids) >= INDEX_BATCH_SIZE:
-            print(f"Flushing {len(pending_ids)} documents to index...")
+            pending_ids.extend(batch_ids)
+            pending_embeddings.extend(embeddings)
+
+            if len(pending_ids) >= INDEX_BATCH_SIZE:
+                print(f"Flushing {len(pending_ids)} documents to index...")
+                t0 = time.time()
+                flush_to_index(index, pending_ids, pending_embeddings)
+                indexing_time += time.time() - t0
+
+        if pending_ids:
+            print(f"Flushing final {len(pending_ids)} documents to index...")
             t0 = time.time()
             flush_to_index(index, pending_ids, pending_embeddings)
             indexing_time += time.time() - t0
-
-    if pending_ids:
-        print(f"Flushing final {len(pending_ids)} documents to index...")
-        t0 = time.time()
-        flush_to_index(index, pending_ids, pending_embeddings)
-        indexing_time += time.time() - t0
-
-    conn.close()
 
     if device == "mps":
         torch.mps.empty_cache()

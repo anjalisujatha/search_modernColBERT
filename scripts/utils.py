@@ -27,8 +27,11 @@ def remove_stale_archive() -> None:
 
 def compress_index() -> None:
     print(f"Compressing {INDEX_DIR} -> {ARCHIVE} ...")
-    with tarfile.open(ARCHIVE, "w:gz") as tar:
-        tar.add(INDEX_DIR, arcname=INDEX_DIR.name)
+    try:
+        with tarfile.open(ARCHIVE, "w:gz") as tar:
+            tar.add(INDEX_DIR, arcname=INDEX_DIR.name)
+    except tarfile.TarError as e:
+        raise RuntimeError(f"Failed to compress index to {ARCHIVE}: {e}") from e
     shutil.rmtree(INDEX_DIR)
     print(f"Compressed index saved to {ARCHIVE} ({ARCHIVE.stat().st_size / 1e6:.1f} MB). Uncompressed folder deleted.")
 
@@ -36,8 +39,11 @@ def compress_index() -> None:
 def extract_index() -> None:
     if not INDEX_DIR.exists():
         print(f"Extracting {ARCHIVE} ...")
-        with tarfile.open(ARCHIVE, "r:gz") as tar:
-            tar.extractall(path=INDEX_DIR.parent)
+        try:
+            with tarfile.open(ARCHIVE, "r:gz") as tar:
+                tar.extractall(path=INDEX_DIR.parent)
+        except tarfile.TarError as e:
+            raise RuntimeError(f"Failed to extract index from {ARCHIVE}: {e}") from e
         print("Extraction complete.")
 
 
