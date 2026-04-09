@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 
 # --- Shared paths ---
-ROOT = Path(__file__).parent.parent
+ROOT = Path(__file__).parent.parent.parent
 DB_PATH = ROOT / "data/processed/products_dataset.db"
 INDEX_DIR = ROOT / "data/processed/pylate_index"
 INDEX_NAME = "esci_data_index"
