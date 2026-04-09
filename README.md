@@ -1,8 +1,36 @@
 # Using ModernColBERT for implementing semantic search on Amazon ESCI dataset
 
-Semantic search pipeline built on [PyLate](https://github.com/lightonai/pylate) and the `lightonai/colbertv2.0` ColBERT model, indexed over the [Amazon ESCI](https://github.com/amazon-science/esci-data) product dataset.
+This project explores using [ColBERT](https://arxiv.org/abs/2004.12832) — a late-interaction neural retrieval model — for product search over the [Amazon ESCI dataset](https://github.com/amazon-science/esci-data), a large-scale benchmark of real shopping queries with human-annotated relevance labels.
 
-Queries are expanded using `llama3.2` via [Ollama](https://ollama.com) before retrieval to improve recall.
+Unlike traditional keyword search (BM25) or single-vector dense retrieval (e.g. bi-encoders), ColBERT computes token-level interactions between query and document at retrieval time. This gives it finer-grained matching while still being scalable via approximate nearest-neighbor indexing.
+
+The pipeline is built on [PyLate](https://github.com/lightonai/pylate) using the `lightonai/colbertv2.0` model and a Voyager approximate nearest-neighbor index over 50k products. Before retrieval, queries are expanded using `llama3.2` via [Ollama](https://ollama.com) to improve recall on underspecified or ambiguous queries.
+
+## Evaluation Results
+
+We evaluated retrieval quality on 100 queries sampled from the ESCI dataset using two complementary methods:
+
+1. **ESCI ground truth (nDCG@5)** — each retrieved product is scored using the ESCI relevance labels (`exact`, `substitute`, `complement`, `irrelevant`) mapped to a 4-point graded scale, and nDCG@5 is computed against those labels.
+2. **LLM-as-judge (nDCG@5)** — `llama3.2` independently assigns a relevance label to each (query, product) pair, and nDCG@5 is computed from those LLM-assigned labels. This tests whether the model's judgement aligns with the human-curated ESCI annotations.
+
+| Metric | Score |
+|--------|-------|
+| nDCG@5 (ESCI ground truth) | 0.6148 |
+| nDCG@5 (LLM judge) | 0.5538 |
+| Label agreement (LLM vs ESCI) | 42.2% (211/500) |
+
+**Label distribution across 500 (query, product) pairs:**
+
+| Label | ESCI | LLM |
+|-------|------|-----|
+| exact | 233 | 172 |
+| substitute | 34 | 209 |
+| complement | 3 | 8 |
+| irrelevant | 230 | 111 |
+
+The LLM tends to over-predict `substitute` and under-predict `irrelevant` compared to ESCI, which explains the lower nDCG score — it is more lenient about what counts as a near-match.
+
+---
 
 ## Setup
 
@@ -74,9 +102,9 @@ Runs nDCG@5 scoring against ESCI ground-truth labels and an LLM-as-judge evaluat
 
 ---
 
-## Re-indexing (only needed when indexing more than 20k documents)
+## Re-indexing (only needed when indexing more than 50k documents)
 
-The default index covers 20k documents. To index a larger slice or the full dataset, run the full pipeline:
+The default index covers 50k documents. To index a larger slice or the full dataset, run the full pipeline:
 
 **1. Prepare data**
 

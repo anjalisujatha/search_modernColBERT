@@ -18,7 +18,7 @@ from src.search import EXPAND_N, ORIGINAL_WEIGHT, retrieve_top_pids
 K = 5
 N_SAMPLE = 100
 
-DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_DIR = Path(__file__).parent.parent.parent / "data"
 INDEX_FOLDER = str(DATA_DIR / "processed" / "pylate_index")
 INDEX_NAME = "esci_data_index"
 DB_PATH = str(DATA_DIR / "processed" / "products_dataset.db")

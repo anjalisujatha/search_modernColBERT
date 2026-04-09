@@ -1,4 +1,5 @@
 data/
+.claude/
 
 # Python
 __pycache__/
