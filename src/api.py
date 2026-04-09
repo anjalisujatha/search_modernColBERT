@@ -1,22 +1,15 @@
 import sqlite3
-import sys
 from contextlib import asynccontextmanager
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent / "scripts"))
 
 from fastapi import FastAPI
 from pylate import indexes, models, retrieve
 
-from utils import DB_PATH, INDEX_DIR, INDEX_NAME, MODEL_NAME, cleanup_index, extract_index, get_device
-from retrieve_data import search
+from src.scripts.utils import DB_PATH, INDEX_DIR, INDEX_NAME, MODEL_NAME, check_index, get_device
+from src.search import search
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    try:
-        extract_index()
-    except Exception as e:
-        raise RuntimeError(f"Failed to extract index from {INDEX_DIR}: {e}") from e
+    check_index()
 
     try:
         device = get_device()
@@ -37,7 +30,6 @@ async def lifespan(app: FastAPI):
 
     yield
     app.state.conn.close()
-    cleanup_index()
 
 
 app = FastAPI(lifespan=lifespan)

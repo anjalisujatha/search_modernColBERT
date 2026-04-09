@@ -1,11 +1,5 @@
-# Data files
-*.csv
-*.parquet
-*.sqlite
-*.sqlite3
-*.tsv
-*.json
-*.jsonl
+data/
+.claude/
 
 # Python
 __pycache__/

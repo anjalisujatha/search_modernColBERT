@@ -12,13 +12,19 @@ dependencies = [
     "pyarrow",
     "sqlalchemy",
     "torch",
-    "pylate[voyager]",
+    "pylate",
+    "voyager",
+    "ollama",
+    "requests",
+    "sqlitedict",
+    "tqdm",
     "fastapi",
-    "uvicorn"
+    "uvicorn",
+    "gdown"
 ]
 
 [tool.setuptools.packages.find]
-include = ["scripts*"]
+include = ["src*"]
 
 [project.optional-dependencies]
 notebook = [
