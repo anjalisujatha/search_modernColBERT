@@ -1,4 +1,4 @@
-# Using ModernColBERT for implementing semantic search on Amazon ESCI dataset
+# Semantic Search using ModernColBERT
 
 This project explores using [ColBERT](https://arxiv.org/abs/2004.12832) — a late-interaction neural retrieval model — for product search over the [Amazon ESCI dataset](https://github.com/amazon-science/esci-data), a large-scale benchmark of real shopping queries with human-annotated relevance labels.
 
