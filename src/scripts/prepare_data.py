@@ -3,7 +3,7 @@ import sqlite3
 import pandas as pd
 from sqlalchemy import create_engine, types
 
-from utils import DB_PATH, ROOT
+from src.scripts.utils import DB_PATH, ROOT
 
 # --- Config ---
 RAW_PARQUET = ROOT / "data/raw/shopping_queries_dataset_products.parquet"

@@ -6,14 +6,12 @@ import torch
 from pylate import indexes, models
 from tqdm.auto import tqdm
 
-from utils import (
+from src.scripts.utils import (
     DB_PATH,
     INDEX_DIR,
     INDEX_NAME,
     MODEL_NAME,
-    compress_index,
     get_device,
-    remove_stale_archive,
 )
 
 # --- Config ---
@@ -36,8 +34,6 @@ def flush_to_index(index, ids, embeddings):
 
 
 def main():
-    remove_stale_archive()
-
     device = get_device()
 
     model = models.ColBERT(model_name_or_path=MODEL_NAME, device=device)
@@ -108,7 +104,6 @@ def main():
     print(f"Indexing time: {indexing_time:.1f}s")
     print(f"Total time:    {time.time() - total_start:.1f}s")
 
-    compress_index()
 
 
 if __name__ == "__main__":

@@ -1,14 +1,11 @@
 import sqlite3
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
-
 # Mock heavy dependencies before importing the module under test.
+import sys
 sys.modules.setdefault("torch", MagicMock())
 sys.modules.setdefault("torch.backends", MagicMock())
 sys.modules.setdefault("torch.backends.mps", MagicMock())
@@ -16,7 +13,7 @@ sys.modules.setdefault("pylate", MagicMock())
 sys.modules.setdefault("pylate.indexes", MagicMock())
 sys.modules.setdefault("pylate.models", MagicMock())
 
-from index_data import iter_batches, main  # noqa: E402
+from src.scripts.index_data import iter_batches, main  # noqa: E402
 
 
 def _make_db(tmp_path, rows):
@@ -63,14 +60,14 @@ def test_encode_and_create_index(tmp_path, mock_model, mock_index):
     mock_index.add_documents.side_effect = lambda **kw: captured_ids.extend(kw["documents_ids"])
 
     with (
-        patch("index_data.DB_PATH", db),
-        patch("index_data.LIMIT", 2),
-        patch("index_data.ENCODE_BATCH_SIZE", 2),
-        patch("index_data.INDEX_BATCH_SIZE", 10),
-        patch("index_data.models.ColBERT", return_value=mock_model),
-        patch("index_data.indexes.Voyager", return_value=mock_index),
-        patch("index_data.remove_stale_archive"),
-        patch("index_data.compress_index"),
+        patch("src.scripts.index_data.DB_PATH", db),
+        patch("src.scripts.index_data.LIMIT", 2),
+        patch("src.scripts.index_data.ENCODE_BATCH_SIZE", 2),
+        patch("src.scripts.index_data.INDEX_BATCH_SIZE", 10),
+        patch("src.scripts.index_data.models.ColBERT", return_value=mock_model),
+        patch("src.scripts.index_data.indexes.Voyager", return_value=mock_index),
+        patch("src.scripts.index_data.remove_stale_archive"),
+        patch("src.scripts.index_data.compress_index"),
     ):
         main()
 
